@@ -14,7 +14,6 @@ namespace _737OverflowValve
         private const string SettingsFile = "settings.config";
         private const string XmlFile = "config.xml";
         private GaugeControl gaugeControl;
-        private ContextMenuStrip contextMenu;
         private readonly ProSimConnect _connection = new ProSimConnect();
 
 
@@ -29,9 +28,6 @@ namespace _737OverflowValve
             this.UpdateStyles(); // Apply the changes
             this.Load += MainForm_Load;
             this.FormClosing += MainForm_FormClosing;
-            InitializeContextMenu();
-            this.MouseUp += MainForm_MouseUp;
-
             // Register to receive connect and disconnect events
             _connection.onConnect += Connection_onConnect;
             _connection.onDisconnect += Connection_onDisconnect;
@@ -140,38 +136,6 @@ namespace _737OverflowValve
             //Console.WriteLine("ref " + value);
             gaugeControl.GaugeValue = value;
             gaugeControl.Invalidate();
-        }
-
-        private void InitializeContextMenu()
-        {
-            contextMenu = new ContextMenuStrip();
-            var ipItem = new ToolStripMenuItem("Show IP Address");
-            ipItem.Click += ShowIPAddress_Click;
-            contextMenu.Items.Add(ipItem);
-        }
-
-        private void MainForm_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (e.Button == MouseButtons.Right)
-            {
-                Console.WriteLine("right click");
-                contextMenu.Show(this, e.Location);
-            }
-        }
-
-        private void ShowIPAddress_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                XmlDocument doc = new XmlDocument();
-                doc.Load(XmlFile);
-                string ip = doc.SelectSingleNode("/Configuration/IPAddress")?.InnerText ?? "Not Found";
-                MessageBox.Show($"IP Address: {ip}", "IP Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Failed to load IP address:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
         }
     }
 }
