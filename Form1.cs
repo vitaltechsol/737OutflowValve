@@ -3,7 +3,9 @@ using System;
 using System.Data.Common;
 using System.IO;
 using System.Windows.Forms;
+using System.Xml;
 using System.Xml.Linq;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace _737OverflowValve
 {
@@ -12,15 +14,24 @@ namespace _737OverflowValve
         private const string SettingsFile = "settings.config";
         private const string XmlFile = "config.xml";
         private GaugeControl gaugeControl;
+        private ContextMenuStrip contextMenu;
         private readonly ProSimConnect _connection = new ProSimConnect();
 
 
         public MainForm()
         {
             InitializeComponent();
+            this.SetStyle(ControlStyles.OptimizedDoubleBuffer |
+                    ControlStyles.AllPaintingInWmPaint |
+                    ControlStyles.UserPaint, true);
+
             this.BackColor = System.Drawing.Color.Black;
+            this.UpdateStyles(); // Apply the changes
             this.Load += MainForm_Load;
             this.FormClosing += MainForm_FormClosing;
+            InitializeContextMenu();
+            this.MouseUp += MainForm_MouseUp;
+
             // Register to receive connect and disconnect events
             _connection.onConnect += Connection_onConnect;
             _connection.onDisconnect += Connection_onDisconnect;
@@ -85,18 +96,22 @@ namespace _737OverflowValve
 
         private string LoadIpFromXml()
         {
-            if (!File.Exists(XmlFile)) return "192.168.1.142"; // "127.0.0.1";
+            if (!File.Exists(XmlFile)) return "127.0.0.1";
             XDocument doc = XDocument.Load(XmlFile);
-            return doc.Root?.Element("IP")?.Value ?? "192.168.1.142"; //  "127.0.0.1";
+            return doc.Root?.Element("IP")?.Value ?? "127.0.0.1";
         }
 
         private void Connection_onConnect()
         {
             Invoke(new MethodInvoker(Connected));
-            Console.WriteLine("connected");
+            Invoke(new MethodInvoker(GetData));
+        }
 
-           var dataRefCdu1 = new DataRef("system.gauge.G_OH_OUTFLOW_VALVE", 100, _connection, false);
-          // dataRefCdu1.onDataChange += DataRef_cdu1_onDataChange;
+        private void GetData()
+        {
+            var dataRefOutflow = new DataRef("system.gauge.G_OH_OUTFLOW_VALVE", 5, _connection);
+            dataRefOutflow.onDataChange += DataRef_outflow_onDataChange;
+            Console.WriteLine("connected to prosim");
         }
 
         /// <summary>
@@ -115,7 +130,48 @@ namespace _737OverflowValve
 
         private void NotConnected()
         {
-            lblStatus.Text = "INOPt";
+            lblStatus.Text = "INOP";
+        }
+
+        private void DataRef_outflow_onDataChange(DataRef dataRef)
+        {
+            var value = Math.Round(Convert.ToDouble(dataRef.value), 3);
+
+            //Console.WriteLine("ref " + value);
+            gaugeControl.GaugeValue = value;
+            gaugeControl.Invalidate();
+        }
+
+        private void InitializeContextMenu()
+        {
+            contextMenu = new ContextMenuStrip();
+            var ipItem = new ToolStripMenuItem("Show IP Address");
+            ipItem.Click += ShowIPAddress_Click;
+            contextMenu.Items.Add(ipItem);
+        }
+
+        private void MainForm_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                Console.WriteLine("right click");
+                contextMenu.Show(this, e.Location);
+            }
+        }
+
+        private void ShowIPAddress_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                XmlDocument doc = new XmlDocument();
+                doc.Load(XmlFile);
+                string ip = doc.SelectSingleNode("/Configuration/IPAddress")?.InnerText ?? "Not Found";
+                MessageBox.Show($"IP Address: {ip}", "IP Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to load IP address:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }

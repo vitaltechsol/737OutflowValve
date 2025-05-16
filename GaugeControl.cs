@@ -6,7 +6,7 @@ namespace _737OverflowValve
 {
     public class GaugeControl : Control
     {
-        public double GaugeValue { get; set; } = 120.0; // 0–100
+        public double GaugeValue { get; set; } = 0.0; // 0–100
 
         public GaugeControl()
         {
@@ -25,7 +25,8 @@ namespace _737OverflowValve
             int h = this.ClientSize.Height;
             int size = Math.Min(w, h);
             int radius = (int)(size * 0.4);
-            Point center = new Point(w / 2, (int)(h * 0.8));
+
+            Point center = new Point(w / 2, (int)(h / 1.5));
 
             // Draw semicircle
             Rectangle arcRect = new Rectangle(
@@ -34,17 +35,15 @@ namespace _737OverflowValve
                 radius * 2,
                 radius * 2);
 
-            using (Pen arcPen = new Pen(Color.White, 2))
+            using (Pen arcPen = new Pen(Color.White, 20))
             {
                 g.DrawArc(arcPen, arcRect, 180, 180);
             }
 
-
-            // Compute full needle angle
-            double angleDeg = 270 - (GaugeValue * 180 / 100);
+            // Compute needle angle (same logic as before)
+            double angleDeg = 160 - (GaugeValue * 140 / 100);
             double angleRad = angleDeg * Math.PI / 180;
 
-            // Needle starts from 50% radius instead of center
             double innerRadius = radius * 0.5;
             double outerRadius = radius;
 
@@ -60,8 +59,6 @@ namespace _737OverflowValve
             {
                 g.DrawLine(needlePen, needleStart, needleEnd);
             }
-
-
         }
     }
 }
