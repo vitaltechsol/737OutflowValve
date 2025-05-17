@@ -15,15 +15,13 @@ namespace _737OverflowValve
         private const string XmlFile = "config.xml";
         private GaugeControl gaugeControl;
         private readonly ProSimConnect _connection = new ProSimConnect();
-
-
         public MainForm()
         {
             InitializeComponent();
             this.SetStyle(ControlStyles.OptimizedDoubleBuffer |
                     ControlStyles.AllPaintingInWmPaint |
                     ControlStyles.UserPaint, true);
-
+            this.lblStatus.BackColor = System.Drawing.Color.Transparent;
             this.BackColor = System.Drawing.Color.Black;
             this.UpdateStyles(); // Apply the changes
             this.Load += MainForm_Load;
@@ -35,27 +33,29 @@ namespace _737OverflowValve
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            LoadSettings();
-            string ip = LoadIpFromXml();
-            Console.WriteLine("IP from XML: " + ip);
+            gaugeControl = new GaugeControl
+            {
+                Dock = DockStyle.Fill
+            };
+            this.Controls.Add(gaugeControl);
+            this.Shown += new EventHandler(Form1_Shown);
+        }
 
+        private void Form1_Shown(Object sender, EventArgs e)
+        {
+            Invoke(new MethodInvoker(LoadSettings));
+            Invoke(new MethodInvoker(LoadConfigFromXML));
+
+            Console.WriteLine("IP from XML: " + gaugeControl.ConfigIP);
             try
             {
-                _connection.Connect(ip);
+                _connection.Connect(gaugeControl.ConfigIP);
             }
             catch (Exception ex)
             {
                 Invoke(new MethodInvoker(NotConnected));
                 //  MessageBox.Show("Error connecting to ProSim System: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-
-
-
-            gaugeControl = new GaugeControl
-            {
-                Dock = DockStyle.Fill
-            };
-            this.Controls.Add(gaugeControl);
         }
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
@@ -90,11 +90,18 @@ namespace _737OverflowValve
             });
         }
 
-        private string LoadIpFromXml()
+        private void LoadConfigFromXML()
         {
-            if (!File.Exists(XmlFile)) return "127.0.0.1";
+            if (!File.Exists(XmlFile)) return;
+
             XDocument doc = XDocument.Load(XmlFile);
-            return doc.Root?.Element("IP")?.Value ?? "127.0.0.1";
+            gaugeControl.ConfigIP = doc.Root?.Element("IP")?.Value;
+            gaugeControl.ConfigLineSize = Convert.ToInt32(
+                doc.Root?.Element("LineSize")?.Value);
+            gaugeControl.ConfigArchSize = Convert.ToInt32(
+                 doc.Root?.Element("ArchSize")?.Value);
+            gaugeControl.ConfigArchHexColor = doc.Root?
+                .Element("ArchHexColor")?.Value;
         }
 
         private void Connection_onConnect()
@@ -122,10 +129,12 @@ namespace _737OverflowValve
         private void Connected()
         {
             lblStatus.Text = String.Empty;
+            lblStatus.Visible = false;
         }
 
         private void NotConnected()
         {
+            lblStatus.Visible = true;
             lblStatus.Text = "INOP";
         }
 

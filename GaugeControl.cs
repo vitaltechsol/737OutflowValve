@@ -8,6 +8,11 @@ namespace _737OverflowValve
     public class GaugeControl : Control
     {
         public double GaugeValue { get; set; } = 0.0; // 0–100
+        public string ConfigIP { get; set; }
+        public int ConfigLineSize { get; set; } = 4;
+        public int ConfigArchSize { get; set; } = 2;
+        public string ConfigArchHexColor { get; set; }
+
         private ContextMenuStrip contextMenu;
 
         public GaugeControl()
@@ -24,26 +29,10 @@ namespace _737OverflowValve
         private void ContextMenu_Opening(object sender, System.ComponentModel.CancelEventArgs e)
         {
             contextMenu.Items.Clear(); // Clear any previous items
-            string ipAddress = LoadIpAddressFromXml();
-            var ipItem = new ToolStripMenuItem($"IP: {ipAddress}");
+            var ipItem = new ToolStripMenuItem($"IP: {ConfigIP}");
             ipItem.Enabled = false; // Make it read-only
             contextMenu.Items.Add(ipItem);
         }
-
-        private string LoadIpAddressFromXml()
-        {
-            try
-            {
-                XmlDocument doc = new XmlDocument();
-                doc.Load("config.xml");
-                return doc.SelectSingleNode("/Configuration/IP")?.InnerText?.Trim() ?? "Not found";
-            }
-            catch
-            {
-                return "Error loading IP";
-            }
-        }
-
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
@@ -51,23 +40,12 @@ namespace _737OverflowValve
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             g.Clear(Color.Black);
 
+
             int w = this.ClientSize.Width;
             int h = this.ClientSize.Height;
             int size = Math.Min(w, h);
             int radius = (int)(size * 0.4);
             Point center = new Point(w / 2, (int)(h / 1.5));
-
-            // Draw semicircle
-            Rectangle arcRect = new Rectangle(
-                center.X - radius,
-                center.Y - radius,
-                radius * 2,
-                radius * 2);
-
-            using (Pen arcPen = new Pen(Color.White, 20))
-            {
-                g.DrawArc(arcPen, arcRect, 180, 180);
-            }
 
             // Compute needle angle
             double angleDeg = 160 - (GaugeValue * 140 / 100);
@@ -84,9 +62,24 @@ namespace _737OverflowValve
                 center.X + (int)(outerRadius * Math.Cos(angleRad)),
                 center.Y - (int)(outerRadius * Math.Sin(angleRad)));
 
-            using (Pen needlePen = new Pen(Color.White, 8))
+            // Needle
+            using (Pen needlePen = new Pen(Color.White, ConfigLineSize))
             {
                 g.DrawLine(needlePen, needleStart, needleEnd);
+            }
+
+            // Draw Arch
+            Rectangle arcRect = new Rectangle(
+                center.X - radius,
+                center.Y - radius,
+                radius * 2,
+                radius * 2);
+
+            using (Pen arcPen = new Pen(
+                    ColorTranslator.FromHtml(ConfigArchHexColor)
+                    , ConfigArchSize))
+            {
+                g.DrawArc(arcPen, arcRect, 180, 180);
             }
         }
     }
