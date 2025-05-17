@@ -141,10 +141,21 @@ namespace _737OverflowValve
         private void DataRef_outflow_onDataChange(DataRef dataRef)
         {
             var value = Math.Round(Convert.ToDouble(dataRef.value), 3);
-
-            //Console.WriteLine("ref " + value);
-            gaugeControl.GaugeValue = value;
-            gaugeControl.Invalidate();
+            Console.WriteLine("ref " + value);
+            //gaugeControl.SetGaugeValueSmooth(value);
+            gaugeControl.Invoke(new Action(() =>
+            {
+                gaugeControl.SetGaugeValueSmooth(value);
+            }));
         }
+
+        //private void DataRef_outflow_onDataChange(DataRef dataRef)
+        //{
+        //    var value = Math.Round(Convert.ToDouble(dataRef.value), 3);
+
+        //    //Console.WriteLine("ref " + value);
+        //    gaugeControl.GaugeValue = value;
+        //    gaugeControl.Invalidate();
+        //}
     }
 }
